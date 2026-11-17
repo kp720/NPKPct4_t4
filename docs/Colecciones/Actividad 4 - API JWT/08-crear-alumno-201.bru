@@ -1,0 +1,31 @@
+meta {
+  name: 08 Crear alumno (201)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/alumnos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "nombre": "Ana Lopez",
+    "matricula": "A{{$randomInt}}",
+    "escuelaId": {{escuelaId}}
+  }
+}
+
+vars:post-response {
+  alumnoId: res.body.id
+}
+
+assert {
+  res.status: eq 201
+}

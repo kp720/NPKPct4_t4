@@ -1,0 +1,23 @@
+meta {
+  name: 02 Registro (201)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Kevin Nava P",
+    "email": "kevin@correo123.com",
+    "password": "Kevin123!"
+  }
+}
+
+assert {
+  res.status: eq 201
+}

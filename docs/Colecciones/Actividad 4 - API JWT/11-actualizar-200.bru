@@ -1,0 +1,27 @@
+meta {
+  name: 11 Actualizar (200)
+  type: http
+  seq: 11
+}
+
+put {
+  url: {{baseUrl}}/api/alumnos/{{alumnoId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "nombre": "Ana Lopez Actualizada",
+    "matricula": "A{{$randomInt}}",
+    "escuelaId": {{escuelaId}}
+  }
+}
+
+assert {
+  res.status: eq 200
+}

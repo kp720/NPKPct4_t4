@@ -1,107 +1,114 @@
-# Actividad 3 - CRUD con Spring Boot, JPA y MySQL
+# Actividad 4: API REST con Spring Security y JWT
+
+API REST construida con Spring Boot que permite registrar usuarios, iniciar sesión y obtener un token JWT. Con ese token se accede a un CRUD protegido de alumnos y escuelas.
+
+- **Alumno:** Kevin Peralta Nava Peralta
 
 - **Materia:** Programación Web
-- **Autor:** Kevin Peralta Nava Peralta
 
-Pagina web con CRUD completo de **Alumnos** conectado a una base de datos MySQL, con una relación de **Escuela** y **Alumno**.
-## Enlaces
+**URL base (VPS):** `http://94.130.98.27:2757`
 
-- **Proyecto en el VPS (puerto 2755):** http://94.130.98.27:2755/alumnos
-- **API en el VPS:** http://94.130.98.27:2755/api/alumnos
-- **Colección de Postman:** [docs/json/coleccion-act3.json](docs/json/coleccion-act3.json)
-
-Las Actividades 1 y 2 siguen corriendo en sus puertos originales (2750 y 2753), sin verse afectadas.
-
-## Entidades y relación
-
-| Entidad | Campos |
-|---|---|
-| `Escuela` | `id`, `nombre`, `ciudad` |
-| `Alumno` | `id`, `nombre`, `matricula`, `escuela` |
-
-**Relación:** una Escuela tiene muchos Alumnos y cada Alumno pertenece a una sola Escuela.
-
-- En `Alumno`: `@ManyToOne` con `@JoinColumn(name = "escuela_id")`. La llave foránea `escuela_id` queda en la tabla `alumno`.
-- En `Escuela`: `@OneToMany(mappedBy = "escuela")`.
+---
 
 ## Estructura del proyecto
 
 ```
-src/main/java/.../
-├── model/        Escuela, Alumno (entidades JPA)
-├── repository/   EscuelaRepository, AlumnoRepository (JpaRepository)
-├── service/      EscuelaService, AlumnoService (lógica de negocio)
-├── dto/          AlumnoRequest, AlumnoResponse, AlumnoForm
-└── controller/   EscuelaController, AlumnoController (REST), AlumnoVistaController (vistas)
-src/main/resources/templates/
-├── alumnos.html       Lista de alumnos con botones de acción
-└── alumno-form.html   Formulario para crear y modificar
+spring-actividad4/
+├── bruno/                  Colección de Bruno (entornos local y vps)
+├── docs/img/               Capturas del README
+├── src/main/java/com/actividad3/crud_spring/
+│   ├── config/             SecurityConfig
+│   ├── controller/         AuthController, AlumnoController, EscuelaController
+│   ├── dto/                Request y Response (DTOs)
+│   ├── exception/          GlobalExceptionHandler, ErrorResponse
+│   ├── model/              Entidades (Usuario, Rol, Alumno, Escuela)
+│   ├── repository/         Repositorios JPA
+│   ├── security/           JwtService, JwtAuthenticationFilter, UsuarioDetailsService
+│   └── service/            AuthService, AlumnoService
+└── pom.xml
 ```
 
 ## Endpoints
 
-### API REST (JSON)
+### Públicos
 
-| Método | Ruta | Descripción |
+| Método | Ruta | Descripción | Respuesta |
+|---|---|---|---|
+| POST | `/api/auth/register` | Registra un usuario | 201 |
+| POST | `/api/auth/login` | Inicia sesión y devuelve el token | 200 |
+
+**Reglas de la contraseña:** mínimo 8 caracteres, con al menos una mayúscula, un número y un carácter especial. Se guarda con BCrypt.
+
+### Protegidos (requieren `Authorization: Bearer <token>`)
+
+| Método | Ruta | Descripción | Respuesta |
+|---|---|---|---|
+| GET | `/api/alumnos?page=0&size=5` | Lista paginada | 200 |
+| GET | `/api/alumnos/{id}` | Ver un alumno | 200 / 404 |
+| POST | `/api/alumnos` | Crear alumno | 201 |
+| PUT | `/api/alumnos/{id}` | Actualizar alumno | 200 / 404 |
+| DELETE | `/api/alumnos/{id}` | Eliminar alumno | 204 / 404 |
+| GET | `/api/escuelas` | Listar escuelas | 200 |
+| GET | `/api/escuelas/{id}` | Ver una escuela | 200 / 404 |
+| POST | `/api/escuelas` | Crear escuela | 201 |
+
+### Ejemplos de cuerpo
+
+Registro:
+```json
+{ "nombre": "Kevin Nava", "email": "kevin@correo.com", "password": "Kevin123!" }
+```
+
+Login:
+```json
+{ "email": "kevin@correo.com", "password": "Kevin123!" }
+```
+
+Alumno:
+```json
+{ "nombre": "Ana Lopez", "matricula": "A1001", "escuelaId": 1 }
+```
+
+## Pruebas con Bruno
+
+La colección está en la carpeta `bruno/`.
+
+1. Abre Bruno y elige **Open Collection** > carpeta `bruno`.
+2. Selecciona el entorno `local` o `vps`.
+3. Ejecuta primero `05 Login`, que guarda el token automáticamente.
+4. Para correr todo junto: clic derecho en la colección > **Run**.
+
+| # | Petición | Resultado esperado |
 |---|---|---|
-| POST | `/api/escuelas` | Crear una escuela |
-| GET | `/api/escuelas` | Listar escuelas |
-| POST | `/api/alumnos` | **Crear** un alumno |
-| GET | `/api/alumnos` | **Leer** todos los alumnos |
-| GET | `/api/alumnos/{id}` | **Leer** un alumno |
-| PUT | `/api/alumnos/{id}` | **Actualizar** un alumno |
-| DELETE | `/api/alumnos/{id}` | **Eliminar** un alumno |
+| 01 | Sin token | 401 |
+| 02 | Registro | 201 |
+| 03 | Registro duplicado | 409 |
+| 04 | Registro inválido | 400 |
+| 05 | Login | 200 + token |
+| 06 | Login con contraseña incorrecta | 401 |
+| 07 | Crear escuela | 201 |
+| 08 | Crear alumno | 201 |
+| 09 | Listar paginado | 200 |
+| 10 | Ver uno | 200 |
+| 11 | Actualizar | 200 |
+| 12 | Eliminar | 204 |
+| 13 | Alumno inexistente | 404 |
 
-Ejemplo de cuerpo para crear o actualizar un alumno:
 
-```json
-{ "nombre": "Kevin Nava Peralta", "matricula": "A001", "escuelaId": 1 }
-```
+## 8. Capturas
 
-La respuesta incluye el nombre de la escuela, no solo su id:
+### Petición sin token (401)
+![Sin token](docs/img/sin-token.png)
 
-```json
-{ "id": 1, "nombre": "Kevin Nava Peralta", "matricula": "A001", "escuelaId": 1, "escuelaNombre": "Mi Escuela" }
-```
+### Login con token
+![Login](docs/img/login.png)
 
-### Vistas (Thymeleaf)
+### Petición protegida con token (200)
+![Petición protegida](docs/img/listar.png)
 
-| Ruta | Descripción |
-|---|---|
-| `/alumnos` | Lista con los botones **Nuevo alumno**, **Modificar** y **Eliminar** |
-| `/alumnos/nuevo` | Formulario para crear un alumno |
-| `/alumnos/{id}/editar` | Formulario para modificar un alumno |
+### Contraseña cifrada con BCrypt en MySQL
+![Hash BCrypt](docs/img/bcrypt.png)
 
----
+### Runner de Bruno en el VPS
+![Runner VPS](docs/img/runner-vps.png)
 
-## Capturas de pantalla
-
-### 1. Entidades relacionadas (tablas en MySQL)
-
-Tablas `escuela` y `alumno`, con la llave foránea `escuela_id`.
-
-![Tablas en MySQL](docs/img/tablas-mysql.png)
-
-### 2. Relación reflejada en la base de datos
-
-Consulta que une `alumno` con `escuela` y muestra el nombre de la escuela.
-
-![Relación en MySQL](docs/img/relacion-mysql.png)
-
-### 3. Crear (Create)
-
-![Crear alumno](docs/img/crud-crear.png)
-
-### 4. Leer (Read)
-
-La lista muestra el nombre de la escuela de cada alumno, no solo su id.
-
-![Leer alumnos](docs/img/crud-leer.png)
-
-### 5. Actualizar (Update)
-
-![Actualizar alumno](docs/img/crud-actualizar.png)
-
-### 6. Eliminar (Delete)
-
-![Eliminar alumno](docs/img/crud-eliminar.png)
